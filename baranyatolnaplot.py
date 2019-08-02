@@ -38,7 +38,7 @@ data = np.array(data)
 #Dinit = np.array([  3.06733109, 121.91322502,   5.24350383,  16.59367886,   0.79454929])
 #Dinit = np.array([ 4.24138189e+04,  6.90749573e-01,  1.48903524e+05,  1.68392701e+02,       -2.38063878e+02])
 #Dinit = np.array([ 1, 1, 0.01])
-Dinit = np.array([  1e-6, 1e-6, -0.020])
+Dinit = np.array([  6.5e-5,6.4e-5,-2.8e-7])
 #Dinit = np.array([-1.91255781e-08,  1.93718199e+01,  -1.91255781e-08, -1.91255781e-08,
 #  -1.91255781e-08,  2.77199829e-01])
 settlements = []
@@ -173,7 +173,6 @@ west, east, south, north = 17.7,19.1,45.7,46.9
 #plt.title('Plot of Proportion of German Speakers')
 #plt.colorbar()
 #plt.show()
-
 distmat = np.zeros((len(settlements0),len(settlements0)))
 for i in range(len(settlements0)):
     for j in range(len(settlements0)):
@@ -182,19 +181,18 @@ def findsse (D):
     constant = {}
     speaker = np.copy(speakerModelling)
     sse = 0
-    #D = (0,0,factk)
-    langnum = len(D)-1#
+#    D = (0,0,factk)
+    langnum = len(D)-1
     for k in range(langnum):
         
         d = abs(D[k])
         if d != 0:
             matrix = 4/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
-
         else:
             matrix = np.zeros((len(settlements0),len(settlements0)))
-#        np.fill_diagonal(matrix, 1)
-        for i in range(len(settlements0)):
-            matrix[i,i]= math.exp((-1)**k*D[-1]*(1-(np.copy(speaker[i,k])/pop[1880][i])))
+        np.fill_diagonal(matrix, 1)
+#        for i in range(len(settlements0)):
+#            matrix[i,i]= math.exp(D[-1]*((speaker[i,k]/pop[1880][i])))
         constant[languages[k]] = matrix
 
     for year in range(1881,1931):
@@ -202,12 +200,12 @@ def findsse (D):
 #    
 #            d = abs(D[k])
 #            if d != 0:
-#                matrix = 1/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
+#                matrix = 4/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
 #            else:
 #                matrix = np.zeros((len(settlements0),len(settlements0)))
-#            np.fill_diagonal(matrix, 1)
+##            np.fill_diagonal(matrix, 1)
 #            for i in range(len(settlements0)):
-#                matrix[i,i]= math.exp((-1)**k*D[-1]*pop[year-1][i])
+#                matrix[i,i]= math.exp((-1)**(k)*((D[-1]*pop[year-1][i])))
 #            constant[languages[k]] = matrix
         score = []
         for i in range(langnum):
@@ -216,8 +214,7 @@ def findsse (D):
         totalscore = score.sum(axis=1)
         score = score / totalscore[:,None]
         speaker = score * pop[year][:, None]
-        
-        if year in [1890,1900,1910,1920, 1930]:
+        if year in [1890,1900,1910, 1920, 1930]:
 #            for i in range(len(speaker)):
 #                for j in range(len(speaker[i])):
 #                    if observedTest[year][i,j]:
@@ -231,53 +228,54 @@ print(res.x)
 print(res.success)
 print(res.message)
 print(res.fun)
-#print(findsse(Dinit))
 
 constant = {}
 D = res.x
-#D = (0, 0, res.x[0])
-constant = {}
-speaker = np.copy(speakerModelling)
-sse = 0
-#    D = (0,0,factk)
+#D = Dinit
+#D = (0,0,res.x[0])
 langnum = len(D)-1
+speaker = np.copy(speakerModelling)
 for k in range(langnum):
-    
+    matrix = np.zeros((len(settlements0),len(settlements0)))
     d = abs(D[k])
     if d != 0:
         matrix = 4/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
-
     else:
         matrix = np.zeros((len(settlements0),len(settlements0)))
-#    np.fill_diagonal(matrix, 1)
-    for i in range(len(settlements0)):
-        matrix[i,i]= math.exp((-1)**k*D[-1]*(1-(np.copy(speaker[i,k])/pop[1880][i])))
+    np.fill_diagonal(matrix, 1)
+#    for i in range(len(settlements0)):
+#        matrix[i,i]= math.exp(D[-1]*((speaker[i,k]/pop[1880][i])))
     constant[languages[k]] = matrix
+totalx, totaly = 0,0
+#scoring = {}
+#for i in range(langnum):
+#    scoring[languages[i]] = np.zeros(len(settlements0))
 
-totalx = 0
-totaly = 0
 for year in range(1881,1931):
+#    print(year)
+    
 #    for k in range(langnum):
-#
 #        d = abs(D[k])
 #        if d != 0:
-#            matrix = 1/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
+#            matrix = 4/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
 #        else:
 #            matrix = np.zeros((len(settlements0),len(settlements0)))
-#        np.fill_diagonal(matrix, 1)
+##        np.fill_diagonal(matrix, 1)
 #        for i in range(len(settlements0)):
-#            matrix[i,i]= matrix[i,i]= math.exp((-1)**k*D[-1]*pop[year-1][i])
+#            matrix[i,i]= math.exp((-1)**(k)*((D[-1]*pop[year-1][i])))
 #        constant[languages[k]] = matrix
     score = []
     for i in range(langnum):
+#        print(languages[i])
         score.append(constant[languages[i]] @ speaker[:,i])
         for j in range(len(score[i])):
             k = constant[languages[i]][j,j]*speaker[j,i]
             totalx += k
             totaly += score[i][j]-k
-#        for j in [0,133,155,196,408]:
+#            scoring[languages[i]][j] += score[i][j] - k
+#        for j in [0,133,155,196,408,487]:
 #            print(j)
-#            k=speaker[j,i]*math.exp(D[-1]*(speaker[j,i]/pop[year-1][j]))
+#            k=speaker[j,i]*math.exp((-1)**i*D[-1]*pop[year-1][j])
 #            print(k)
 #            print(score[i][j]-k)
     score = np.transpose(np.array(score))
@@ -286,6 +284,9 @@ for year in range(1881,1931):
     speaker = score * pop[year][:, None]
 print('Habitat term:', totalx)
 print('Diffusion term:', totaly)
+#for i in scoring.keys():
+#    print(i)
+#    print(np.sort(scoring[i]))
 print(np.sum(speaker, axis = 0))
 print(np.sum(observedTest[1930], axis = 0))
 
@@ -298,37 +299,71 @@ print((abs(observedTest[1930] - comparison)).sum()/speaker.size)
 
 def fitfunc(k,a,b):
     return a*np.exp(b*k)
-#smallvillages = []
-#for i in range(len(speakerModelling)):
-#    if speakerModelling[i,0] < 100 or pop[1880][i] < 1200:
-#        smallvillages.append(i)
-#y = np.delete(speaker[:,0]/pop[1930],smallvillages)/np.delete(speakerModelling[:,0]/pop[1880],smallvillages)
-#x = np.delete(speakerModelling[:,0]/pop[1880], smallvillages)
-#plt.plot(x, y, linestyle = '', marker = 'x', mec = '#1f77b4')
-##plt.ylim(0,10)
-##plt.xlim(0,6000)
-##plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#419ede')
-#popt, pcov = opt.curve_fit(fitfunc, x, y)
-##plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#419ede', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
-#print(1-(((y-fitfunc(x, *popt))**2).sum()/((y-np.average(y))**2).sum()))
+smallvillages = []
+for i in range(len(speakerModelling)):
+    if speakerModelling[i,0] < 100 or pop[1880][i] < 1200:
+        smallvillages.append(i)
+y = np.delete(speaker[:,0]/pop[1930],smallvillages)/np.delete(speakerModelling[:,0]/pop[1880],smallvillages)
+x = np.delete(speakerModelling[:,0]/pop[1880], smallvillages)
+plt.plot(x, y, linestyle = '', marker = 'x', mec = '#1f77b4')
+#plt.ylim(0,10)
+#plt.xlim(0,6000)
+#plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#419ede')
+popt, pcov = opt.curve_fit(fitfunc, x, y)
+plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#419ede', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+print(1-((y-fitfunc(x, *popt))**2).sum()/((y-np.average(y))**2).sum())
          
 smallvillages = []
 for i in range(len(speakerModelling)):
     if speakerModelling[i,0] < 100 or pop[1880][i] < 1200:
         smallvillages.append(i)
-y = np.delete(observedTest[1930][:,0]/pop[1910],smallvillages)/np.delete(speakerModelling[:,0]/pop[1880],smallvillages)
+y = np.delete(observedTest[1930][:,0]/pop[1930],smallvillages)/np.delete(speakerModelling[:,0]/pop[1880],smallvillages)
 x = np.delete(speakerModelling[:,0]/pop[1880], smallvillages)
 plt.plot(x, y, linestyle = '', marker = 'x', mec = '#ff7f0e')
 #plt.ylim(0,10)
 #plt.xlim(0,6000)
 #plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#ffbb0e' )
 popt, pcov = opt.curve_fit(fitfunc, x, y)
-#plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#ffbb0e', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#ffbb0e', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
 print(1-((y-fitfunc(x, *popt))**2).sum()/((y-np.average(y))**2).sum())
-#plt.legend()
+plt.legend()
 plt.xlabel('Initial proportion of German speakers')
 plt.ylabel('Change in fraction of German speakers')
-plt.title('Baranya-Tolna Change in fraction of German language')
+plt.title('Change in fraction of German language')
+plt.show()
+
+smallvillages = []
+for i in range(len(speakerModelling)):
+    if speakerModelling[i,0] < 100 or pop[1880][i] < 1200:
+        smallvillages.append(i)
+y = np.delete(speaker[:,0]/pop[1930],smallvillages)/np.delete(speakerModelling[:,0]/pop[1880],smallvillages)
+x = np.delete(pop[1880], smallvillages)
+plt.plot(x, y, linestyle = '', marker = 'x', mec = '#1f77b4')
+#plt.ylim(0,10)
+#plt.xlim(0,6000)
+plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#419ede', label='y=%5.6fx+%5.3f' % tuple(np.polyfit(x, y, 1)))
+#popt, pcov = opt.curve_fit(fitfunc, x, y)
+#plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#419ede', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+print(1-((y-np.poly1d(np.polyfit(x, y, 1))(x))**2).sum()/((y-np.average(y))**2).sum())
+         
+smallvillages = []
+for i in range(len(speakerModelling)):
+    if speakerModelling[i,0] < 100 or pop[1880][i] < 1200:
+        smallvillages.append(i)
+y = np.delete(observedTest[1930][:,0]/pop[1930],smallvillages)/np.delete(speakerModelling[:,0]/pop[1880],smallvillages)
+x = np.delete(pop[1880], smallvillages)
+plt.plot(x, y, linestyle = '', marker = 'x', mec = '#ff7f0e')
+#plt.ylim(0,10)
+#plt.xlim(0,6000)
+plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#ffbb0e', label='y=%5.6fx+%5.3f' % tuple(np.polyfit(x, y, 1)) )
+#popt, pcov = opt.curve_fit(fitfunc, x, y)
+#plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#ffbb0e', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+print(1-((y-np.poly1d(np.polyfit(x, y, 1))(x))**2).sum()/((y-np.average(y))**2).sum())
+
+plt.legend()
+plt.xlabel('Initial total population')
+plt.ylabel('Change in fraction of German speakers')
+plt.title('Change in fraction of German language')
 plt.show()
 
 plotted = speaker[:,0]/speaker.sum(axis = 1)
@@ -340,12 +375,30 @@ plt.title('Plot of Proportion of German Speakers from Simulation')
 plt.colorbar()
 plt.show()
 
-plotted = (speaker[:,0]-observedTest[1930][:,0])#/speaker.sum(axis = 1)
+plotted = speaker[:,0]-speakerModelling[:,0]
 west, east, south, north = 17.7,19.1,45.7,46.9
 add_bg(west, east, south, north)
 #print(plotted)
 plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-500, vmax=500, transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
-plt.title('Plot of Errors from Simulation')
+plt.title('Plot of Changes in Absolute Number of German Speakers from Simulation')
 plt.colorbar()
 plt.show()
 
+plotted = speaker[:,0]/pop[1930]-speakerModelling[:,0]/pop[1880]
+#print(plotted.shape)
+west, east, south, north = 17.7,19.1,45.7,46.9
+add_bg(west, east, south, north)
+#print(plotted)
+plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-max(abs(plotted)), vmax=max(abs(plotted)), transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
+plt.title('Plot of Changes in Proportion of German Speakers from Simulation')
+plt.colorbar()
+plt.show()
+
+plotted = (speaker[:,0]-observedTest[1930][:,0])/observedTest[1930].sum(axis = 1)
+west, east, south, north = 17.7,19.1,45.7,46.9
+add_bg(west, east, south, north)
+#print(plotted)
+plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-max(abs(plotted)), vmax=max(abs(plotted)), transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
+plt.title('Plot of relative errors from Simulation')
+plt.colorbar()
+plt.show()

@@ -12,8 +12,15 @@ import numpy as np
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import scipy.optimize as opt
+import matplotlib.cm as cm
+from matplotlib.colors import ListedColormap
+
 def distance2 (ll1,ll2):
     return vincenty(ll1,ll2)**2
+
+viridisBig = cm.get_cmap('brg', 512)
+newcmp = ListedColormap(viridisBig(np.linspace(0, 0.5, 256)))
+
 
 languages = ('de', 'hu', 'sr', 'sk', 'other')
 
@@ -33,7 +40,7 @@ data = np.array(data)
 #Dinit = np.array([  2.8796892,  106.4799405,   10.09502287,   0.61053932,   0.84524969])#3.06733121
 #Dinit = np.array([  3.06733109, 121.91322502,   5.24350383,  16.59367886,   0.79454929])
 #Dinit = np.array([ 4.24138189e+04,  6.90749573e-01,  1.48903524e+05,  1.68392701e+02,       -2.38063878e+02])
-Dinit = np.array([ 0.028,0.026,-0.047])
+Dinit = np.array([ 0.055,0.561,-0.029])
 #Dinit = np.array([  6,6,6,6,6,6])
 #Dinit = np.array([-1.91255781e-08,  1.93718199e+01,  -1.91255781e-08, -1.91255781e-08,
 #  -1.91255781e-08,  2.77199829e-01])
@@ -110,9 +117,9 @@ def findsse (D):
             matrix = 1/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
         else:
             matrix = np.zeros((len(settlements0),len(settlements0)))
-#        np.fill_diagonal(matrix, 1)
-        for i in range(len(settlements0)):
-            matrix[i,i]= math.exp((-1)**(k)*D[-1]*(1-speaker[i,k]/pop[1881][i]))
+        np.fill_diagonal(matrix, 1)
+#        for i in range(len(settlements0)):
+#            matrix[i,i]= math.exp((-1)**(k)*D[-1]*((speaker[i,0]/pop[1881][i])))
         constant[languages[k]] = matrix
 
     for year in range(1882,1911):
@@ -123,7 +130,7 @@ def findsse (D):
 #                matrix = 1/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
 #            else:
 #                matrix = np.zeros((len(settlements0),len(settlements0)))
-#            np.fill_diagonal(matrix, 1)
+##            np.fill_diagonal(matrix, 1)
 #            for i in range(len(settlements0)):
 #                matrix[i,i]= math.exp((-1)**(k)*((D[-1]*pop[year-1][i])))
 #            constant[languages[k]] = matrix
@@ -162,32 +169,36 @@ for k in range(langnum):
         matrix = 1/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
     else:
         matrix = np.zeros((len(settlements0),len(settlements0)))
-#    np.fill_diagonal(matrix, 1)
-    for i in range(len(settlements0)):
-        matrix[i,i]= math.exp((-1)**(k)*D[-1]*(1-(speaker[i,k]/pop[1881][i])))
+    np.fill_diagonal(matrix, 1)
+#    for i in range(len(settlements0)):
+#        matrix[i,i]= math.exp((-1)**(k)*D[-1]*((speaker[i,0]/pop[1881][i])))
     constant[languages[k]] = matrix
 totalx, totaly = 0,0
+#scoring = {}
+#for i in range(langnum):
+#    scoring[languages[i]] = np.zeros(len(settlements0))
 
 for year in range(1882,1911):
-    print(year)
+#    print(year)
 #    for k in range(langnum):
 #        d = abs(D[k])
 #        if d != 0:
 #            matrix = 1/(4*math.pi*d)*np.exp(-1*distmat/(4*d))
 #        else:
 #            matrix = np.zeros((len(settlements0),len(settlements0)))
-#            np.fill_diagonal(matrix, 1)
+##        np.fill_diagonal(matrix, 1)
 #        for i in range(len(settlements0)):
 #            matrix[i,i]= math.exp((-1)**(k)*((D[-1]*pop[year-1][i])))
-#        constant[languages[k+1]] = matrix
+#        constant[languages[k]] = matrix
     score = []
     for i in range(langnum):
 #        print(languages[i])
-        score.append(constant[languages[i]] @ speaker[:,i])
-        for j in range(len(score[i])):
-            k = constant[languages[i]][j,j]*speaker[j,i]
+#        score.append(constant[languages[i]] @ speaker[:,i])
+#        for j in range(len(score[i])):
+#            k = constant[languages[i]][j,j]*speaker[j,i]
             totalx += k
             totaly += score[i][j]-k
+#            scoring[languages[i]][j] += score[i][j] - k
 #        for j in [0,133,155,196,408,487]:
 #            print(j)
 #            k=speaker[j,i]*math.exp((-1)**i*D[-1]*pop[year-1][j])
@@ -199,6 +210,9 @@ for year in range(1882,1911):
     speaker = score * pop[year][:, None]
 print('Habitat term:', totalx)
 print('Diffusion term:', totaly)
+#for i in scoring.keys():
+#    print(i)
+#    print(np.sort(scoring[i]))
 print(np.sum(speaker, axis = 0))
 print(np.sum(observedTest[1910], axis = 0))
 
@@ -211,19 +225,19 @@ print((abs(observedTest[1910] - comparison)).sum()/speaker.size)
 
 def fitfunc(k,a,b):
     return a*np.exp(b*k)
-#smallvillages = []
-#for i in range(len(speakerModelling)):
-#    if speakerModelling[i,0] < 100 or pop[1881][i] < 1200:
-#        smallvillages.append(i)
-#y = np.delete(speaker[:,0]/pop[1910],smallvillages)/np.delete(speakerModelling[:,0]/pop[1881],smallvillages)
-#x = np.delete(speakerModelling[:,0]/pop[1881], smallvillages)
-#plt.plot(x, y, linestyle = '', marker = 'x', mec = '#1f77b4')
-##plt.ylim(0,10)
-##plt.xlim(0,6000)
-##plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#419ede')
-#popt, pcov = opt.curve_fit(fitfunc, x, y)
-##plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#419ede', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
-#print(1-((y-fitfunc(x, *popt))**2).sum()/((y-np.average(y))**2).sum())
+smallvillages = []
+for i in range(len(speakerModelling)):
+    if speakerModelling[i,0] < 100 or pop[1881][i] < 1200:
+        smallvillages.append(i)
+y = np.delete(speaker[:,0]/pop[1910],smallvillages)/np.delete(speakerModelling[:,0]/pop[1881],smallvillages)
+x = np.delete(speakerModelling[:,0]/pop[1881], smallvillages)
+plt.plot(x, y, linestyle = '', marker = 'x', mec = '#1f77b4')
+#plt.ylim(0,10)
+#plt.xlim(0,6000)
+#plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#419ede')
+popt, pcov = opt.curve_fit(fitfunc, x, y)
+plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#419ede', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+print(1-((y-fitfunc(x, *popt))**2).sum()/((y-np.average(y))**2).sum())
          
 smallvillages = []
 for i in range(len(speakerModelling)):
@@ -236,10 +250,43 @@ plt.plot(x, y, linestyle = '', marker = 'x', mec = '#ff7f0e')
 #plt.xlim(0,6000)
 #plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#ffbb0e' )
 popt, pcov = opt.curve_fit(fitfunc, x, y)
-#plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#ffbb0e', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#ffbb0e', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
 print(1-((y-fitfunc(x, *popt))**2).sum()/((y-np.average(y))**2).sum())
-#plt.legend()
+plt.legend()
 plt.xlabel('Initial proportion of German speakers')
+plt.ylabel('Change in fraction of German speakers')
+plt.title('Western Hungary Change in fraction of German language')
+plt.show()
+
+smallvillages = []
+for i in range(len(speakerModelling)):
+    if speakerModelling[i,0] < 100 or pop[1881][i] < 1200:
+        smallvillages.append(i)
+y = np.delete(speaker[:,0]/pop[1910],smallvillages)/np.delete(speakerModelling[:,0]/pop[1881],smallvillages)
+x = np.delete(pop[1881], smallvillages)
+plt.plot(x, y, linestyle = '', marker = 'x', mec = '#1f77b4')
+#plt.ylim(0,10)
+#plt.xlim(0,6000)
+plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#419ede', label='y=%5.6fx+%5.3f' % tuple(np.polyfit(x, y, 1)))
+#popt, pcov = opt.curve_fit(fitfunc, x, y)
+#plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#419ede', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+print(1-((y-np.poly1d(np.polyfit(x, y, 1))(x))**2).sum()/((y-np.average(y))**2).sum())
+         
+smallvillages = []
+for i in range(len(speakerModelling)):
+    if speakerModelling[i,0] < 100 or pop[1881][i] < 1200:
+        smallvillages.append(i)
+y = np.delete(observedTest[1910][:,0]/pop[1910],smallvillages)/np.delete(speakerModelling[:,0]/pop[1881],smallvillages)
+x = np.delete(pop[1881], smallvillages)
+plt.plot(x, y, linestyle = '', marker = 'x', mec = '#ff7f0e')
+#plt.ylim(0,10)
+#plt.xlim(0,6000)
+plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), color = '#ffbb0e', label='y=%5.6fx+%5.3f' % tuple(np.polyfit(x, y, 1)) )
+#popt, pcov = opt.curve_fit(fitfunc, x, y)
+#plt.plot(np.arange(0,1,0.01), fitfunc(np.arange(0,1,0.01), *popt), color = '#ffbb0e', label='y=%5.3f*exp(%5.3fx)' % tuple(popt))
+print(1-((y-np.poly1d(np.polyfit(x, y, 1))(x))**2).sum()/((y-np.average(y))**2).sum())
+plt.legend()
+plt.xlabel('Initial total population')
 plt.ylabel('Change in fraction of German speakers')
 plt.title('Western Hungary Change in fraction of German language')
 plt.show()
@@ -347,7 +394,7 @@ def color (de, hu, sr, other):
         return Total/50, red, green, blue
     else:
         return 0,0,0,0
-#speaker = comparison
+#speaker = np.copy(comparison)
 emptyplaces.sort()
 speakerplot = np.copy(speaker)
 for i in emptyplaces:
@@ -369,11 +416,40 @@ plt.scatter(settlements[:,1], settlements[:,0], size, color1, transform=ccrs.Pla
 plt.title('Simulation results')
 plt.show()
 
+west, east, south, north = 15.7,18.0,46.7,48.4
+plotted = speaker[:,0]/speaker.sum(axis = 1)
+
+add_bg(west, east, south, north)
+#print(plotted)
+plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=0, vmax=1, transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
+plt.title('Plot of Proportion of German Speakers from Simulation')
+plt.colorbar()
+plt.show()
+
+plotted = speaker[:,0]-speakerModelling[:,0]
+west, east, south, north = 15.7,18.0,46.7,48.4
+add_bg(west, east, south, north)
+print(plotted)
+plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-500, vmax=500, transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
+plt.title('Plot of Changes in Absolute Number of German Speakers from Simulation')
+plt.colorbar()
+plt.show()
+
+plotted = speaker[:,0]/pop[1910]-speakerModelling[:,0]/pop[1881]
+print(plotted.shape)
+west, east, south, north = 15.7,18.0,46.7,48.4
+add_bg(west, east, south, north)
+print(plotted)
+plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-max(abs(plotted)), vmax=max(abs(plotted)), transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
+plt.title('Plot of Changes in Proportion of German Speakers from Simulation')
+plt.colorbar()
+plt.show()
+
 plotted = (speaker[:,0]-observedTest[1910][:,0])/observedTest[1910].sum(axis = 1)
 west, east, south, north = 15.7,18.0,46.7,48.4
 add_bg(west, east, south, north)
 print(plotted)
-plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-max(abs(plotted)), vmax=max(abs(plotted)), transform=ccrs.PlateCarree(), zorder=2)
-plt.title('Plot of errors from simulation')
+plt.scatter(settlements0[:,1], settlements0[:,0], 5, c=plotted, vmin=-max(abs(plotted)), vmax=max(abs(plotted)), transform=ccrs.PlateCarree(), zorder=2, cmap = newcmp)
+plt.title('Plot of relative errors from Simulation')
 plt.colorbar()
 plt.show()
